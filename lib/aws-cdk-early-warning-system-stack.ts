@@ -23,6 +23,10 @@ export class AwsCdkEarlyWarningSystemStack extends cdk.Stack {
       customLogFilterPatternsPerLogGroup: sdkV2FiltersPerLogGroup,
     });
 
-    new GlueJobFailuresStack(this, 'etl-failure-stack', props);
+    new GlueJobFailuresStack(this, 'etl-failure-stack', {
+      ...props,
+      destinationTopic: topic,
+      accountEnvironment,
+    });
   }
 }
