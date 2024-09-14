@@ -7,6 +7,8 @@ import { buildLogGroupForLambda } from '../utils/cloudwatch';
 import { Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as path from 'path';
+import { Rule, Schedule } from 'aws-cdk-lib/aws-events';
+import { LambdaFunction } from 'aws-cdk-lib/aws-events-targets';
 
 export interface QsDatasetRefreshSummaryStackProps extends NestedStackProps {
     destinationTopic: ITopic;
@@ -23,6 +25,7 @@ export class QsDatasetRefreshSummaryStack extends NestedStack {
         super(scope, id, props);
         this.logGroup = buildLogGroupForLambda(this, FUNCTION_NAME);
         this.summaryQsRefreshFunction = this.createSummaryQsDatasetLambdaFunction(props.accountEnvironment, props.destinationTopic);
+        this.createErrorAlarmForQsDatasetRefresh();
     }
 
     createSummaryQsDatasetLambdaFunction(accountEnvironment: string, destinationTopic: ITopic) {
@@ -67,4 +70,12 @@ export class QsDatasetRefreshSummaryStack extends NestedStack {
         return sendCustomizedAlertForQsRefreshSummary;
     }
 
+    createErrorAlarmForQsDatasetRefresh() {
+        // Define the EventBridge rule
+        const rule = new Rule(this, 'qs-dataset-summary-rule', {
+            ruleName: 'qs-dataset-summary-rule',
+            schedule: Schedule.cron({ minute: '0', hour: '7', day: '*' }), 
+        });
+        rule.addTarget(new LambdaFunction(this.summaryQsRefreshFunction));
+    }
 }
