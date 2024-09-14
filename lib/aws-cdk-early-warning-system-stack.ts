@@ -4,6 +4,7 @@ import { LogGroupRetentionStack } from './features/log-group-retention';
 import { LogGroupErrorAlertsStack } from './features/log-group-error-alerts';
 import { Topic } from 'aws-cdk-lib/aws-sns';
 import { sdkV2FiltersPerLogGroup } from './input/custom-log-filters';
+import { GlueJobFailuresStack } from './features/glue-etl-failures';
 
 export class AwsCdkEarlyWarningSystemStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -22,5 +23,6 @@ export class AwsCdkEarlyWarningSystemStack extends cdk.Stack {
       customLogFilterPatternsPerLogGroup: sdkV2FiltersPerLogGroup,
     });
 
+    new GlueJobFailuresStack(this, 'etl-failure-stack', props);
   }
 }
