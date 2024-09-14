@@ -10,22 +10,22 @@ import * as path from 'path';
 import { Rule } from 'aws-cdk-lib/aws-events';
 import { LambdaFunction } from 'aws-cdk-lib/aws-events-targets';
 
-export interface NotificationsOnAlertsStackProps extends NestedStackProps {
+export interface NotificationsOnCloudwatchAlarmsStackProps extends NestedStackProps {
     destinationTopic: ITopic;
     accountEnvironment: string;
     alarmPrefixes: string[];
 }
 
-const FUNCTION_NAME = 'custom-notifications-on-alerts-function';
+const FUNCTION_NAME = 'custom-notifications-on-qw-alarms-function';
 
-export class NotificationsOnAlertsStack extends NestedStack {
-    customNotificationsOnAlerts: IFunction;
+export class NotificationsOnCloudwatchAlarmsStack extends NestedStack {
+    customNotificationsOnQwAlarmsFunction: IFunction;
     logGroup: ILogGroup;
 
-    constructor(scope: Construct, id: string, props: NotificationsOnAlertsStackProps) {
+    constructor(scope: Construct, id: string, props: NotificationsOnCloudwatchAlarmsStackProps) {
         super(scope, id, props);
         this.logGroup = buildLogGroupForLambda(this, FUNCTION_NAME);
-        this.customNotificationsOnAlerts = this.createLambdaFunction(props.accountEnvironment, props.destinationTopic);
+        this.customNotificationsOnQwAlarmsFunction = this.createLambdaFunction(props.accountEnvironment, props.destinationTopic);
         this.createRuleForAlarm(props.alarmPrefixes);
     }
 
@@ -46,7 +46,7 @@ export class NotificationsOnAlertsStack extends NestedStack {
             logGroup: this.logGroup,
             runtime: Runtime.NODEJS_20_X,
             handler: 'sendCustomizedNotificationFromAlarm',
-            entry: path.join('lambda', 'alerts', 'handlers.ts'),
+            entry: path.join('lambda', 'alarms', 'handlers.ts'),
             environment: {
                 TOPIC_ARN : destinationTopic.topicArn,
                 ACCOUNT_ENVIRONMENT: accountEnvironment.toUpperCase(),
@@ -82,7 +82,7 @@ export class NotificationsOnAlertsStack extends NestedStack {
                 detail,
             },
 
-            targets: [ new LambdaFunction(this.customNotificationsOnAlerts) ],
+            targets: [ new LambdaFunction(this.customNotificationsOnQwAlarmsFunction) ],
         });
 
     }
