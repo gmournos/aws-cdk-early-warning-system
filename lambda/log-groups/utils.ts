@@ -2,7 +2,7 @@ import { CloudWatchLogsClient, PutRetentionPolicyCommand } from '@aws-sdk/client
 
 const cloudwatchlogs = new CloudWatchLogsClient();
 
-const setLogRetention = async (logGroupName: string, retentionDays: number) => {
+export const setLogRetention = async (logGroupName: string, retentionDays: number) => {
     // Parameters to set the retention policy for the log group
     const params = {
         logGroupName,
