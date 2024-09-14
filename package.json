@@ -13,6 +13,7 @@
   "devDependencies": {
     "@types/aws-lambda": "^8.10.145",
     "@types/jest": "^29.5.12",
+    "@types/luxon": "^3.4.2",
     "@types/node": "20.11.19",
     "aws-cdk": "2.130.0",
     "esbuild": "^0.23.1",
@@ -23,9 +24,11 @@
   },
   "dependencies": {
     "@aws-sdk/client-cloudwatch-logs": "^3.651.1",
+    "@aws-sdk/client-glue": "^3.649.0",
     "@aws-sdk/client-sns": "^3.651.1",
     "aws-cdk-lib": "2.130.0",
     "constructs": "^10.0.0",
+    "luxon": "^3.5.0",
     "source-map-support": "^0.5.21"
   }
 }
