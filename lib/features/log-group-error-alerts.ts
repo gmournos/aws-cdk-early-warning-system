@@ -1,9 +1,10 @@
 import { NestedStack, NestedStackProps, RemovalPolicy } from 'aws-cdk-lib';
 import { ITopic } from 'aws-cdk-lib/aws-sns';
 import { Construct } from 'constructs';
-import { buildLogGroupWithAlertForLambda, createLogSubscriptionAlertFunction, DEFAULT_FILTER_PATTERN } from '../utils/cloudwatch';
-import { CfnAccountPolicy, ILogGroup } from 'aws-cdk-lib/aws-logs';
+import { buildLogGroupWithAlertForLambda, createLogSubscriptionAlertFunction, DEFAULT_FILTER_PATTERN, stripLogGroupName } from '../utils/cloudwatch';
+import { CfnAccountPolicy, ILogGroup, LogGroup, SubscriptionFilter } from 'aws-cdk-lib/aws-logs';
 import { IFunction } from 'aws-cdk-lib/aws-lambda';
+import { LambdaDestination } from 'aws-cdk-lib/aws-logs-destinations';
 
 export type ErrorLogPattern = {
     errorType: string,
@@ -31,6 +32,37 @@ export class LogGroupErrorAlertsStack extends NestedStack {
 
         this.logErrorSubcriptionFunction = this.createLogErrorSubcriptionFunction(props.accountEnvironment, props.destinationTopic);
         this.createGeneralSubscriptionFilter(props.customLogFilterPatternsPerLogGroup);
+
+        for (const [logGroupName, errorLogPatterns] of Object.entries(props.customLogFilterPatternsPerLogGroup)) {
+
+            // Lookup the CloudWatch log group
+            const strippedLogGroupName = stripLogGroupName(logGroupName);
+            const logGroup = LogGroup.fromLogGroupName(scope, `error-detect-${strippedLogGroupName}-ref`, logGroupName);
+
+            const createdFilters : SubscriptionFilter[] = [];
+
+            for (let i = 0; i < errorLogPatterns.length; i++) {
+                const { errorType, logPatternString } = errorLogPatterns[i];
+                const prefix = `${errorType}-${strippedLogGroupName}`;
+
+                createdFilters.push(logGroup.addSubscriptionFilter(`${prefix}-subscription`, {
+                    filterName: `${prefix}-filter`,
+                    destination: new LambdaDestination(this.logErrorSubcriptionFunction, {
+                        addPermissions: false, 
+                        // wer are giving permissions already inside createLogSubscriptionAlertFunction so we do not need this.
+                        // Additionally it will create one allow Function invoke policy for each filter and might make us exceed limits for created policies per stack
+                    }),
+                    filterPattern: { logPatternString }, 
+                }));
+                const batchSize = 1;
+
+                // add a dependency to serialize filter creation and avoid Rate Exceeded errors
+                if ( i >= batchSize) { // batches of 1 !!!!
+                    createdFilters[i].node.addDependency(createdFilters[i-batchSize]); 
+                }
+            }
+        }
+
     }
 
     createGeneralSubscriptionFilter(customLogFilterPatternsPerLogGroup: Record<string, ErrorLogPatterns>) {

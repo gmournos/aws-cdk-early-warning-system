@@ -105,3 +105,5 @@ export const createErrorAlarmForLogGroup = (scope: Construct, id: string, errorT
 
     return alarm;
 };
+
+export const stripLogGroupName = (logGroupName : string) => logGroupName.replace('/aws/lambda/', '');
