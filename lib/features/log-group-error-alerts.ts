@@ -1,7 +1,7 @@
 import { NestedStack, NestedStackProps, RemovalPolicy } from 'aws-cdk-lib';
 import { ITopic } from 'aws-cdk-lib/aws-sns';
 import { Construct } from 'constructs';
-import { buildLogGroupForLambda, createLogSubscriptionAlertFunction } from '../utils/cloudwatch';
+import { buildLogGroupForLambda, createLogSubscriptionAlertFunction, DEFAULT_FILTER_PATTERN } from '../utils/cloudwatch';
 import { CfnAccountPolicy, ILogGroup } from 'aws-cdk-lib/aws-logs';
 import { IFunction } from 'aws-cdk-lib/aws-lambda';
 
@@ -30,7 +30,7 @@ export class LogGroupErrorAlertsStack extends NestedStack {
         const logsPolicy = new CfnAccountPolicy(this, `${this.id}-policy`, {
             policyDocument: JSON.stringify({
                 DestinationArn: this.logErrorSubcriptionFunction.functionArn,
-                FilterPattern: '?Runtime.ExitError ?"Task timed out after" ?"ERROR" ?Exception', // system error, e.g. out of memory error, lambda timeout, or just error,
+                FilterPattern: DEFAULT_FILTER_PATTERN,
                 Distribution: 'Random',
                 selectionCriteria: `LogGroupName NOT IN ${JSON.stringify(exceptionalLogGroups)}`,
             }),

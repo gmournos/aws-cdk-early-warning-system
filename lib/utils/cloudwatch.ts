@@ -6,7 +6,11 @@ import { Effect, PolicyStatement, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import { Runtime } from 'aws-cdk-lib/aws-lambda';
 
 import * as path from 'path';
-import { ILogGroup, LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
+import { ILogGroup, LogGroup, MetricFilter, RetentionDays } from 'aws-cdk-lib/aws-logs';
+import { Alarm, ComparisonOperator, TreatMissingData } from 'aws-cdk-lib/aws-cloudwatch';
+import { SnsAction } from 'aws-cdk-lib/aws-cloudwatch-actions';
+
+export const DEFAULT_FILTER_PATTERN = '?Runtime.ExitError ?"Task timed out after" ?"ERROR" ?Exception'; // system error, e.g. out of memory error, lambda timeout, or just error,
 
 export interface LogSubscriptionAlertFunctionProps {
     scope: Construct, 
@@ -65,4 +69,39 @@ export const buildLogGroupForLambda = (scope: Construct, lamdbaName: string) => 
     });
 
     return logGroup;
+};
+
+export const buildLogGroupWithAlertForLambda = (scope: Construct, lamdbaName: string, topic: ITopic) => {
+    const logGroup = buildLogGroupForLambda(scope, lamdbaName);
+    const alarm = createErrorAlarmForLogGroup(scope, lamdbaName, 'internal-ews-error', DEFAULT_FILTER_PATTERN, logGroup, 'AwsCdkEarlyWarningSystemStack');
+    alarm.addAlarmAction(new SnsAction(topic));
+    return logGroup;
+};
+
+export const createErrorAlarmForLogGroup = (scope: Construct, id: string, errorType: string, logPatternString: string, logGroup: ILogGroup, stackName: string) => {
+
+    // Define a filter pattern to search for ERROR in the logs
+    const filterPattern = {
+        logPatternString,
+    };
+
+    // Create a metric filter
+    const metricFilter = new MetricFilter(scope, `${errorType}-mf-${id}`, {
+        logGroup,
+        metricNamespace: 'EWSError',
+        metricName: `${errorType}-${stackName}-${id}`,
+        filterPattern,
+    });
+
+    // Create a CloudWatch alarm
+    const alarm = new Alarm(scope, `${errorType}-alarm-${id}`, {
+        alarmName: `${errorType}-alarm-${stackName}-${id}`,
+        metric: metricFilter.metric(),
+        threshold: 1, // Raise an alarm if there is at least one occurrence of an error
+        evaluationPeriods: 1,
+        comparisonOperator: ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+        treatMissingData: TreatMissingData.NOT_BREACHING,
+    });
+
+    return alarm;
 };
