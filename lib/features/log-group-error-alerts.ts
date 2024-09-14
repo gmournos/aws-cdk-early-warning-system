@@ -5,9 +5,18 @@ import { buildLogGroupWithAlertForLambda, createLogSubscriptionAlertFunction, DE
 import { CfnAccountPolicy, ILogGroup } from 'aws-cdk-lib/aws-logs';
 import { IFunction } from 'aws-cdk-lib/aws-lambda';
 
+export type ErrorLogPattern = {
+    errorType: string,
+    logPatternString : string;
+};
+
+export type ErrorLogPatterns = [] | [ErrorLogPattern] | [ErrorLogPattern, ErrorLogPattern]; 
+// can be zero if we want no logging, is 2 at maximum, as Cloudwatch does not allow more than 2 subscription filters per log group
+
 export interface LogGroupErrorAlertsStackProps extends NestedStackProps {
     destinationTopic: ITopic;
     accountEnvironment: string;
+    customLogFilterPatternsPerLogGroup: Record<string, ErrorLogPatterns>; // keeps the correspondence of logGroupName to custom log patterns
 }
 
 const FUNCTION_NAME = 'alert-for-log-group-error-function';
@@ -21,11 +30,12 @@ export class LogGroupErrorAlertsStack extends NestedStack {
         this.logGroup = buildLogGroupWithAlertForLambda(this, FUNCTION_NAME, props.destinationTopic);
 
         this.logErrorSubcriptionFunction = this.createLogErrorSubcriptionFunction(props.accountEnvironment, props.destinationTopic);
-        this.createGeneralSubscriptionFilter();
+        this.createGeneralSubscriptionFilter(props.customLogFilterPatternsPerLogGroup);
     }
 
-    createGeneralSubscriptionFilter() {
-        const exceptionalLogGroups = [this.logGroup.logGroupName];
+    createGeneralSubscriptionFilter(customLogFilterPatternsPerLogGroup: Record<string, ErrorLogPatterns>) {
+        const allCustomFiltersLogGroups = Object.keys(customLogFilterPatternsPerLogGroup);
+        const exceptionalLogGroups = JSON.stringify([...allCustomFiltersLogGroups, this.logGroup.logGroupName]); // do not subscribe to this.logGroup.logGroupName, to avoid infinite loops
 
         const logsPolicy = new CfnAccountPolicy(this, `${this.id}-policy`, {
             policyDocument: JSON.stringify({

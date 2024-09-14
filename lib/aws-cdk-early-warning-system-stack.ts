@@ -17,7 +17,8 @@ export class AwsCdkEarlyWarningSystemStack extends cdk.Stack {
     new LogGroupErrorAlertsStack(this, 'log-group-error-alerts-stack', {
       ...props,
       destinationTopic: topic,
-      accountEnvironment
+      accountEnvironment,
+      customLogFilterPatternsPerLogGroup: {},
     });
 
   }
