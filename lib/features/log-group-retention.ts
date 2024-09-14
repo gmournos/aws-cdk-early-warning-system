@@ -7,13 +7,20 @@ import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { StringParameter } from 'aws-cdk-lib/aws-ssm';
 import { Construct } from 'constructs';
 import * as path from 'path';
+import { buildLogGroupForLambda } from '../utils/cloudwatch';
+import { ILogGroup } from 'aws-cdk-lib/aws-logs';
+
+const FUNCTION_NAME = 'set-default-log-retention-from-rule';
 
 export class LogGroupRetentionStack extends NestedStack {
+    logGroup: ILogGroup;
 
     constructor(scope: Construct, id: string, props?: NestedStackProps) {
         super(scope, id, props);
         const defaultRetentionParam = StringParameter.valueForStringParameter(this, '/ews/cloudwatch/logs/retetion');
-        const defaultRetention = parseInt(defaultRetentionParam); // validation to make sure it is an integer
+        parseInt(defaultRetentionParam); // validation to make sure it is an integer
+
+        this.logGroup = buildLogGroupForLambda(this, FUNCTION_NAME);
 
         const setLogPolicy = new PolicyStatement({
             actions: [
@@ -26,13 +33,14 @@ export class LogGroupRetentionStack extends NestedStack {
         });
 
         const setDefaultRetentionLambda = new NodejsFunction(this, `set-default-retention-function`, {
-            functionName: 'set-default-log-retention-from-rule',
+            functionName: FUNCTION_NAME,
             runtime: Runtime.NODEJS_20_X,
             handler: 'setDefaultRetentionFromRule',
             entry: path.join('lambda', 'log-groups', 'handlers.ts'),
             environment: {
                 RETENTION_IN_DAYS : defaultRetentionParam,
             },
+            logGroup: this.logGroup,
         });
 
         setDefaultRetentionLambda.addToRolePolicy(setLogPolicy);

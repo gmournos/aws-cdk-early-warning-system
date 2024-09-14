@@ -1,11 +1,12 @@
 import { Construct } from 'constructs';
-import { Stack } from 'aws-cdk-lib';
+import { RemovalPolicy, Stack } from 'aws-cdk-lib';
 import { ITopic } from 'aws-cdk-lib/aws-sns';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { Effect, PolicyStatement, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import { Runtime } from 'aws-cdk-lib/aws-lambda';
 
 import * as path from 'path';
+import { ILogGroup, LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
 
 export interface LogSubscriptionAlertFunctionProps {
     scope: Construct, 
@@ -14,6 +15,7 @@ export interface LogSubscriptionAlertFunctionProps {
     handler: string, 
     sourceFilePath: string[], 
     destinationTopic: ITopic,
+    logGroup: ILogGroup,
 }
 
 export const createLogSubscriptionAlertFunction = (props: LogSubscriptionAlertFunctionProps) => {
@@ -33,6 +35,7 @@ export const createLogSubscriptionAlertFunction = (props: LogSubscriptionAlertFu
         runtime: Runtime.NODEJS_20_X,
         handler: props.handler,
         entry: path.join('lambda', ...props.sourceFilePath),
+        logGroup: props.logGroup,
         environment: {
             TOPIC_ARN : props.destinationTopic.topicArn,
             ACCOUNT_ENVIRONMENT: props.accountEnvironment.toUpperCase(),
@@ -50,4 +53,16 @@ export const createLogSubscriptionAlertFunction = (props: LogSubscriptionAlertFu
     logSubscriptionAlertFunction.addPermission('allow-invocation', lambdaInvocationPolicy);
 
     return logSubscriptionAlertFunction;
+};
+
+export const buildLogGroupForLambda = (scope: Construct, lamdbaName: string) => {
+    const logGroupName = `/aws/lambda/${lamdbaName}`;
+
+    const logGroup = new LogGroup(scope, logGroupName, {
+        logGroupName,
+        retention: RetentionDays.ONE_WEEK,
+        removalPolicy: RemovalPolicy.DESTROY,
+    });
+
+    return logGroup;
 };
