@@ -1,4 +1,6 @@
 import { NestedStack, NestedStackProps } from 'aws-cdk-lib';
+import { Rule } from 'aws-cdk-lib/aws-events';
+import { LambdaFunction } from 'aws-cdk-lib/aws-events-targets';
 import { Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { Runtime } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
@@ -34,5 +36,20 @@ export class LogGroupRetentionStack extends NestedStack {
         });
 
         setDefaultRetentionLambda.addToRolePolicy(setLogPolicy);
+
+        new Rule(this, `cloudwatch-log-set-default-retention-rule`, {
+            ruleName: 'cloudwatch-log-set-default-retention-rule',
+            description: 'Assign default retention to cloudwatch log groups',
+            eventPattern: {
+                detailType: ['AWS API Call via CloudTrail'],
+                source: ['aws.logs'],
+                detail: {
+                    eventSource: [ 'logs.amazonaws.com' ],
+                    eventName: [ 'CreateLogGroup'],
+                },
+            },
+            targets: [ new LambdaFunction(setDefaultRetentionLambda) ],
+
+        });
     }
 }
