@@ -20,3 +20,9 @@ export const setLogRetention = async (logGroupName: string, retentionDays: numbe
     console.info(`Log retention policy set for log group '${logGroupName}' to ${retentionDays} days.`);
     return response;
 };
+
+const awsEncode = (text: string) => encodeURIComponent(encodeURIComponent(text)).replace(/%/g, '$');
+
+export const getUrlLink = (region: string, logGroupName: string, logStreamName: string) => {
+    return `${region}.console.aws.amazon.com/cloudwatch/home?region=${region}#logsV2:log-groups/log-group/${awsEncode(logGroupName)}/log-events/${awsEncode(logStreamName)}`;
+};

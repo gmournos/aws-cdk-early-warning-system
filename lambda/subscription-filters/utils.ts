@@ -2,6 +2,7 @@ import { CloudWatchLogsEvent } from "aws-lambda";
 import { gunzip } from 'zlib'; 
 import { sendCustomizedAlert } from "../sns/utils";
 import { promisify } from 'util';
+import { getUrlLink } from "../log-groups/utils";
 
 const unzipAsync = promisify(gunzip);
 
@@ -10,6 +11,7 @@ export const sendCustomizedNotificationFromLogGroupSubscription = async (event: 
     makeBodyFragmentFunc: (logRecord: string) => string, makeSubjectFunc: (logGroup: string, logStream: string) => string) => {
 
     console.debug('received event', event);
+    const region = process.env.ACCOUNT_REGION!;
     try {
         const zippedPayload = Buffer.from(event.awslogs.data, 'base64');
 
@@ -22,7 +24,8 @@ export const sendCustomizedNotificationFromLogGroupSubscription = async (event: 
         const subject = makeSubjectFunc(logGroup, logStream);
         let body = `Alarm details 
 LogGroup Name: ${logGroup}, 
-LogStream  Id: ${logStream}
+LogStream  Id: ${logStream},
+LogStream URL: ${getUrlLink(region, logGroup, logStream)}.
 ----------------------------------------------------------------------------------------------
 `; 
         for (const record of resultAsJson.logEvents) {
