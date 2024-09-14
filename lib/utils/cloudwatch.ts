@@ -12,7 +12,7 @@ export interface LogSubscriptionAlertFunctionProps {
     functionName: string, 
     accountEnvironment: string, 
     handler: string, 
-    sourceFile: string, 
+    sourceFilePath: string[], 
     destinationTopic: ITopic,
 }
 
@@ -32,7 +32,7 @@ export const createLogSubscriptionAlertFunction = (props: LogSubscriptionAlertFu
         functionName: props.functionName,
         runtime: Runtime.NODEJS_20_X,
         handler: props.handler,
-        entry: path.join('lambda', props.sourceFile),
+        entry: path.join('lambda', ...props.sourceFilePath),
         environment: {
             TOPIC_ARN : props.destinationTopic.topicArn,
             ACCOUNT_ENVIRONMENT: props.accountEnvironment.toUpperCase(),
