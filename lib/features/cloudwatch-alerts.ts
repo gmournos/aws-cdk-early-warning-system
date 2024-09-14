@@ -1,9 +1,12 @@
 import { NestedStack, NestedStackProps } from 'aws-cdk-lib';
-import { IFunction } from 'aws-cdk-lib/aws-lambda';
+import { IFunction, Runtime } from 'aws-cdk-lib/aws-lambda';
 import { ILogGroup } from 'aws-cdk-lib/aws-logs';
 import { ITopic } from 'aws-cdk-lib/aws-sns';
 import { Construct } from 'constructs';
 import { buildLogGroupForLambda } from '../utils/cloudwatch';
+import { Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
+import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
+import * as path from 'path';
 
 export interface NotificationsOnAlertsStackProps extends NestedStackProps {
     destinationTopic: ITopic;
@@ -19,6 +22,35 @@ export class NotificationsOnAlertsStack extends NestedStack {
     constructor(scope: Construct, id: string, props: NotificationsOnAlertsStackProps) {
         super(scope, id, props);
         this.logGroup = buildLogGroupForLambda(this, FUNCTION_NAME);
+        this.customNotificationsOnAlerts = this.createLambdaFunction(props.accountEnvironment, props.destinationTopic);
+    }
+
+    createLambdaFunction(accountEnvironment: string, destinationTopic: ITopic) {
+
+        const sendToTopicPolicy = new PolicyStatement({
+            actions: [
+                'sns:Publish',
+            ],
+            effect: Effect.ALLOW,
+            resources: [
+                destinationTopic.topicArn,
+            ],
+        });
+
+        const sendCustomizedNotificationFromAlarm = new NodejsFunction(this, 'send-customized-event-from-alarm-function', {
+            functionName: FUNCTION_NAME,
+            logGroup: this.logGroup,
+            runtime: Runtime.NODEJS_20_X,
+            handler: 'sendCustomizedNotificationFromAlarm',
+            entry: path.join('lambda', 'alerts', 'handler.ts'),
+            environment: {
+                TOPIC_ARN : destinationTopic.topicArn,
+                ACCOUNT_ENVIRONMENT: accountEnvironment.toUpperCase(),
+            },
+        });
+
+        sendCustomizedNotificationFromAlarm.addToRolePolicy(sendToTopicPolicy);
+        return sendCustomizedNotificationFromAlarm;
     }
 
 }
