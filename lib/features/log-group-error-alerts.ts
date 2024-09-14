@@ -1,7 +1,7 @@
 import { NestedStack, NestedStackProps, RemovalPolicy } from 'aws-cdk-lib';
 import { ITopic } from 'aws-cdk-lib/aws-sns';
 import { Construct } from 'constructs';
-import { buildLogGroupForLambda, createLogSubscriptionAlertFunction, DEFAULT_FILTER_PATTERN } from '../utils/cloudwatch';
+import { buildLogGroupWithAlertForLambda, createLogSubscriptionAlertFunction, DEFAULT_FILTER_PATTERN } from '../utils/cloudwatch';
 import { CfnAccountPolicy, ILogGroup } from 'aws-cdk-lib/aws-logs';
 import { IFunction } from 'aws-cdk-lib/aws-lambda';
 
@@ -18,7 +18,7 @@ export class LogGroupErrorAlertsStack extends NestedStack {
 
     constructor(scope: Construct, private id: string, props: LogGroupErrorAlertsStackProps) {
         super(scope, id, props);
-        this.logGroup = buildLogGroupForLambda(this, FUNCTION_NAME);
+        this.logGroup = buildLogGroupWithAlertForLambda(this, FUNCTION_NAME, props.destinationTopic);
 
         this.logErrorSubcriptionFunction = this.createLogErrorSubcriptionFunction(props.accountEnvironment, props.destinationTopic);
         this.createGeneralSubscriptionFilter();
