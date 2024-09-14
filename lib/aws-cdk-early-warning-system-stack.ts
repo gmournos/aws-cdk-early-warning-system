@@ -48,6 +48,7 @@ export class AwsCdkEarlyWarningSystemStack extends cdk.Stack {
       ...props,
       destinationTopic: topic,
       accountEnvironment,
+      alarmPrefixes: [],
     });
     
   }
