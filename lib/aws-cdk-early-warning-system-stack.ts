@@ -3,6 +3,7 @@ import { Construct } from 'constructs';
 import { LogGroupRetentionStack } from './features/log-group-retention';
 import { LogGroupErrorAlertsStack } from './features/log-group-error-alerts';
 import { Topic } from 'aws-cdk-lib/aws-sns';
+import { sdkV2FiltersPerLogGroup } from './input/custom-log-filters';
 
 export class AwsCdkEarlyWarningSystemStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -18,7 +19,7 @@ export class AwsCdkEarlyWarningSystemStack extends cdk.Stack {
       ...props,
       destinationTopic: topic,
       accountEnvironment,
-      customLogFilterPatternsPerLogGroup: {},
+      customLogFilterPatternsPerLogGroup: sdkV2FiltersPerLogGroup,
     });
 
   }
