@@ -21,3 +21,15 @@ const sendAlert = async (subject: string, body: string, destinationTopicArn: str
         return { statusCode: 500, body: 'Error sending message' };
     }
 };
+
+export const sendCustomizedAlert = async (subject: string, body: string) => {
+    const accountEnvironment = process.env.ACCOUNT_ENVIRONMENT!;
+    const topicArn = process.env.TOPIC_ARN!;
+    
+    const standardSubject = `[EWS ${accountEnvironment.toUpperCase()}] ${subject}`.slice(0, 100); // AWS SNS fails for Subject.length > 100
+    const standardBody = `[${accountEnvironment.toUpperCase()}] - EWS Notification - 
+    
+    ${body}`;
+
+    await sendAlert(standardSubject, standardBody, topicArn);
+};

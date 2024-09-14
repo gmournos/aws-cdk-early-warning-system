@@ -4,6 +4,7 @@ import { Construct } from 'constructs';
 
 export interface LogGroupErrorAlertsStackProps extends NestedStackProps {
     destinationTopic: ITopic;
+    accountEnvironment: string;
 }
 
 export class LogGroupErrorAlertsStack extends NestedStack {

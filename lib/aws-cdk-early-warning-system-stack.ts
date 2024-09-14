@@ -11,11 +11,13 @@ export class AwsCdkEarlyWarningSystemStack extends cdk.Stack {
     const topic = new Topic(this, 'alerts-topic', {
       topicName : 'EarlyWarningSystemAlerts',
     });
+    const accountEnvironment = this.node.tryGetContext('accountEnvironment');
     
     new LogGroupRetentionStack(this, 'log-group-retention-stack', props);
     new LogGroupErrorAlertsStack(this, 'log-group-error-alerts-stack', {
       ...props,
-      destinationTopic: topic
+      destinationTopic: topic,
+      accountEnvironment
     });
 
   }
