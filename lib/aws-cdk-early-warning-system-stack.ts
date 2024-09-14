@@ -6,6 +6,7 @@ import { Topic } from 'aws-cdk-lib/aws-sns';
 import { sdkV2FiltersPerLogGroup } from './input/custom-log-filters';
 import { GlueJobFailuresStack } from './features/glue-etl-failures';
 import { GlueSummaryStack } from './features/glue-etl-summary';
+import { QsDatasetRefreshSummaryStack } from './features/quicksight-dataset-refresh-summary';
 
 export class AwsCdkEarlyWarningSystemStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -31,6 +32,12 @@ export class AwsCdkEarlyWarningSystemStack extends cdk.Stack {
     });
 
     new GlueSummaryStack(this, 'etl-summary-stack', {
+      ...props,
+      destinationTopic: topic,
+      accountEnvironment,
+    });
+
+    new QsDatasetRefreshSummaryStack(this, 'qs-refresh-summary-stack', {
       ...props,
       destinationTopic: topic,
       accountEnvironment,
