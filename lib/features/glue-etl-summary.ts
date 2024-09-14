@@ -7,6 +7,8 @@ import { buildLogGroupForLambda } from '../utils/cloudwatch';
 import { Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as path from 'path';
+import { Rule, Schedule } from 'aws-cdk-lib/aws-events';
+import { LambdaFunction } from 'aws-cdk-lib/aws-events-targets';
 
 export interface GlueSummaryStackProps extends NestedStackProps {
     destinationTopic: ITopic;
@@ -16,12 +18,14 @@ export interface GlueSummaryStackProps extends NestedStackProps {
 const FUNCTION_NAME = 'etl-summary-function';
 
 export class GlueSummaryStack extends NestedStack {
-    failedEtlFunction: IFunction;
+    summaryEtlFunction: IFunction;
     logGroup: ILogGroup;
 
     constructor(scope: Construct, id: string, props: GlueSummaryStackProps) {
         super(scope, id, props);
         this.logGroup = buildLogGroupForLambda(this, FUNCTION_NAME);
+        this.summaryEtlFunction = this.createSummaryEtlLambdaFunction(props.accountEnvironment, props.destinationTopic);
+        this.createEtlRule();
     }
 
     createSummaryEtlLambdaFunction(accountEnvironment: string, destinationTopic: ITopic) {
@@ -62,4 +66,14 @@ export class GlueSummaryStack extends NestedStack {
         sendCustomizedNotificationForEtlSummary.addToRolePolicy(gluePolicy);
         return sendCustomizedNotificationForEtlSummary;
     }
+
+    createEtlRule() {
+        // Define the EventBridge rule
+        const rule = new Rule(this, 'etl-summary-rule', {
+            ruleName: 'etl-summary-rule',
+            schedule: Schedule.cron({ minute: '0', hour: '7', day: '*' }), // in the morning
+        });
+        rule.addTarget(new LambdaFunction(this.summaryEtlFunction));
+    }
+
 }
