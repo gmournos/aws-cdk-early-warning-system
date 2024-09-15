@@ -3,11 +3,12 @@ import { ILogGroup } from 'aws-cdk-lib/aws-logs';
 import { ITopic } from 'aws-cdk-lib/aws-sns';
 import { Construct } from 'constructs';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
-import { Bucket, IBucket } from 'aws-cdk-lib/aws-s3';
+import { Bucket, EventType, IBucket } from 'aws-cdk-lib/aws-s3';
 import { buildLogGroupForLambda } from '../utils/cloudwatch';
 import { Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { Runtime } from 'aws-cdk-lib/aws-lambda';
 import * as path from 'path';
+import { LambdaDestination } from 'aws-cdk-lib/aws-s3-notifications';
 
 export interface CloudfrontErrorsStackProps extends NestedStackProps {
     destinationTopic: ITopic;
@@ -27,6 +28,7 @@ export class CloudfrontErrorsStack extends NestedStack {
         this.logGroup = buildLogGroupForLambda(this, FUNCTION_NAME);
         this.accessLogsBucket = Bucket.fromBucketArn(this, 'cf-access-log-bucket-ref', props.logCloudFrontBucketArn);
         this.cfAccessLogProcessor = this.createCfAccessLogProcessorFunction(props.accountEnvironment, props.destinationTopic);
+        this.accessLogsBucket.addEventNotification(EventType.OBJECT_CREATED, new LambdaDestination(this.cfAccessLogProcessor));
     }
 
     readObjectAccessToBuckets = function(bucketArns: string[]) {
