@@ -9,6 +9,7 @@ import { GlueSummaryStack } from './features/glue-etl-summary';
 import { QsDatasetRefreshSummaryStack } from './features/quicksight-dataset-refresh-summary';
 import { NotificationsOnCloudwatchAlarmsStack } from './features/cloudwatch-alarms';
 import { LambdaLongLatencyStack } from './features/lambda-long-latency';
+import { CloudfrontErrorsStack } from './features/cloudfront-errors';
 
 export class AwsCdkEarlyWarningSystemStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -59,6 +60,14 @@ export class AwsCdkEarlyWarningSystemStack extends cdk.Stack {
       functionLatencies: [], // put here the functions that you want to monitor, and their max tolerable latency
     });
 
+    const logCloudFrontBucketArn = cdk.Fn.importValue('logCloudFrontBucketRef');
+
+    new CloudfrontErrorsStack(this, 'cf-notifications-stack', {
+      ...props,
+      destinationTopic: topic,
+      accountEnvironment,
+      logCloudFrontBucketArn, 
+    });
     
   }
 }
