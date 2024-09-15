@@ -10,6 +10,7 @@ import { QsDatasetRefreshSummaryStack } from './features/quicksight-dataset-refr
 import { NotificationsOnCloudwatchAlarmsStack } from './features/cloudwatch-alarms';
 import { LambdaLongLatencyStack } from './features/lambda-long-latency';
 import { CloudfrontErrorsStack } from './features/cloudfront-errors';
+import { ApiGatewayNotificationsStack } from './features/api-gw-errors';
 
 export class AwsCdkEarlyWarningSystemStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -67,6 +68,13 @@ export class AwsCdkEarlyWarningSystemStack extends cdk.Stack {
       destinationTopic: topic,
       accountEnvironment,
       logCloudFrontBucketArn, 
+    });
+
+    new ApiGatewayNotificationsStack(this, 'api-gw-notifications-stack', {
+      ...props,
+      destinationTopic: topic,
+      accountEnvironment,
+      accessLogsArnRefs: [], // add here the references to the access logs log groups, exported from the stacks that deploy your APIs
     });
     
   }
